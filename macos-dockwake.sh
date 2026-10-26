@@ -25,6 +25,9 @@
 #              unlock often fire together; this collapses them into one restart)
 #
 # Requires Xcode Command Line Tools for the one-time build (xcode-select --install).
+# Built and tested with Swift 6.4 on macOS 27.0.1.
+#
+# Project page: https://github.com/RosBradley/macos-dockwake
 
 set -euo pipefail
 
@@ -120,6 +123,8 @@ ws.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .ma
 ws.addObserver(forName: NSWorkspace.screensDidWakeNotification, object: nil, queue: .main) { _ in
     MainActor.assumeIsolated { resetter.schedule("display wake") }
 }
+// Undocumented system notification; if a future macOS stops sending it,
+// the wake notifications above still trigger a reset.
 DistributedNotificationCenter.default().addObserver(
     forName: Notification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main
 ) { _ in
@@ -189,7 +194,9 @@ cmd_install() {
 
   echo "Building watcher..."
   write_swift
-  # Swift 5 language mode keeps the build tolerant of newer compiler defaults.
+  # Swift 5 language mode avoids Swift 6's strictest concurrency checks.
+  # Newer compilers still enforce some of them, which is why the watcher's
+  # initializer is marked nonisolated.
   "$swiftc" -O -swift-version 5 "$SRC" -o "$BIN" \
     || die "build failed (see compiler output above)."
 
