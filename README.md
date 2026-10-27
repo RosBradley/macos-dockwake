@@ -34,6 +34,8 @@ The glitches tend to show up after sleep or unlock. macOS gives no signal when t
 
 These events often fire together, so a cooldown makes sure the Dock restarts only once per wake.
 
+The watcher also adds a keyboard shortcut, **Control+Option+Command+D**, that restarts the Dock right away whenever you press it.
+
 The watcher has no Dock icon or menu bar item. It uses almost no CPU or memory, since it just waits for events.
 
 ## Requirements
@@ -95,17 +97,15 @@ If you used an earlier version of this tool called spaces-fix, `install` and `un
 
 ## Fixing it by hand
 
-If the glitch shows up while you're using the Mac, run:
+If the glitch shows up while you're using the Mac, press **Control+Option+Command+D**. The Dock restarts at once, without the usual delay or cooldown. The shortcut works in any app and needs no extra permissions.
+
+You can also run this in Terminal, which works even when the watcher isn't installed:
 
 ```sh
 ./macos-dockwake.sh reset
 ```
 
-For a keyboard shortcut, make a shortcut in the Shortcuts app:
-
-1. Open Shortcuts > Settings > Advanced, and turn on Allow Running Scripts.
-2. Make a new shortcut with one Run Shell Script action containing `killall Dock`.
-3. In the shortcut's details, click Add Keyboard Shortcut.
+Locking the screen with Control+Command+Q and unlocking it works too, since the watcher restarts the Dock after every unlock.
 
 ## Settings that make the glitches less frequent
 
@@ -121,13 +121,14 @@ None of these fix the bug, but together they reduce how often it happens:
 
 - **It can't tell when the Dock is stuck.** It restarts the Dock after every wake and unlock, whether or not anything was wrong.
 - **The Dock blinks for a moment** each time it restarts.
-- **It can't fix glitches that start while you're using the Mac.** Use the `reset` command or the shortcut above.
+- **It can't fix glitches that start while you're using the Mac.** Press Control+Option+Command+D instead.
 - **The unlock event is undocumented.** If a future macOS version stops sending it, the wake events still trigger a restart.
 
 ## Troubleshooting
 
 - **The build fails.** Check that `xcode-select -p` prints a folder. If it doesn't, run `xcode-select --install`.
 - **The status says "not installed".** Run `./macos-dockwake.sh install` again and read any error it prints.
+- **The keyboard shortcut does nothing.** Check the log for "keyboard shortcut unavailable". That means another app already uses Control+Option+Command+D.
 - **The log shows no restarts after wake.** Check that the watcher is loaded with `launchctl print gui/$(id -u)/local.macos-dockwake`.
 
 ## When to uninstall

@@ -10,7 +10,8 @@
 # Cmd-Tab and their gestures, and restarting it (killall Dock) clears the
 # stuck state. This script installs a small background watcher that does that
 # automatically a few seconds after the Mac wakes from sleep, the display
-# wakes, or the screen is unlocked.
+# wakes, or the screen is unlocked. Control+Option+Command+D also restarts
+# the Dock right away, any time.
 #
 # Usage:
 #   ./macos-dockwake.sh install     build and start the background watcher
@@ -58,6 +59,7 @@ is_number() { [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]]; }
 write_swift() {
   cat > "$SRC" <<'SWIFT'
 import AppKit
+import Carbon.HIToolbox
 
 // Line-buffer stdout so each log line reaches the log file immediately.
 setvbuf(stdout, nil, _IOLBF, 0)
@@ -93,6 +95,12 @@ final class DockResetter {
         }
     }
 
+    // Keyboard shortcut: restart right away, ignoring the delay and cooldown.
+    func restartNow(_ reason: String) {
+        log("\(reason): restarting Dock now")
+        restartDock()
+    }
+
     func restartDock() {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
@@ -112,9 +120,29 @@ let delay = args.count > 1 ? (Double(args[1]) ?? 3) : 3
 let cooldown = args.count > 2 ? (Double(args[2]) ?? 30) : 30
 let resetter = DockResetter(delay: delay, cooldown: cooldown)
 
-// No Dock icon, no menu bar; just a background listener.
+// No Dock icon and no menu bar. Accessory rather than background-only, so
+// the app still receives its keyboard shortcut.
 let app = NSApplication.shared
-app.setActivationPolicy(.prohibited)
+app.setActivationPolicy(.accessory)
+
+// Global keyboard shortcut: Control+Option+Command+D restarts the Dock at once.
+// Carbon hot keys need no Accessibility or Input Monitoring permission.
+var hotKeyEventType = EventTypeSpec(
+    eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+InstallEventHandler(GetApplicationEventTarget(), { _, _, _ in
+    MainActor.assumeIsolated { resetter.restartNow("keyboard shortcut") }
+    return noErr
+}, 1, &hotKeyEventType, nil, nil)
+var hotKeyRef: EventHotKeyRef?
+let hotKeyStatus = RegisterEventHotKey(
+    UInt32(kVK_ANSI_D), UInt32(controlKey | optionKey | cmdKey),
+    EventHotKeyID(signature: OSType(0x444B574B), id: 1),  // 'DKWK'
+    GetApplicationEventTarget(), 0, &hotKeyRef)
+if hotKeyStatus == noErr {
+    log("keyboard shortcut Control+Option+Command+D ready")
+} else {
+    log("keyboard shortcut unavailable (error \(hotKeyStatus)); another app may be using it")
+}
 
 let ws = NSWorkspace.shared.notificationCenter
 ws.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
@@ -215,6 +243,7 @@ cmd_install() {
   echo
   echo "Installed. The Dock will restart ${DELAY}s after wake or unlock"
   echo "(at most once every ${COOLDOWN}s). It starts automatically at login."
+  echo "Press Control+Option+Command+D to restart the Dock any time."
   echo
   cmd_status
 }
