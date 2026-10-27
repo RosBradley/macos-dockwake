@@ -81,7 +81,7 @@ final class DockResetter {
     func schedule(_ reason: String) {
         let since = Date.now.timeIntervalSince(lastTrigger)
         if since < cooldown {
-            log("\(reason): skipped, Dock was reset \(Int(since))s ago")
+            log("\(reason): skipped, a Dock restart was already triggered \(Int(since))s ago")
             return
         }
         lastTrigger = Date.now
