@@ -1,3 +1,4 @@
 .claude/
 handoffs/
 .DS_Store
+build/

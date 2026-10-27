@@ -13,6 +13,9 @@
 # wakes, or the screen is unlocked. Control+Option+Command+D also restarts
 # the Dock right away, any time.
 #
+# This is the Terminal version. For a menu bar app that installs like any other
+# Mac app, download it from https://github.com/RosBradley/macos-dockwake/releases
+#
 # Usage:
 #   ./macos-dockwake.sh install     build and start the background watcher
 #   ./macos-dockwake.sh reset       restart the Dock right now
