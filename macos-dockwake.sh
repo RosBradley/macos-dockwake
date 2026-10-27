@@ -183,9 +183,10 @@ cmd_install() {
   is_number "$DELAY" || die "DELAY must be a number of seconds."
   is_number "$COOLDOWN" || die "COOLDOWN must be a number of seconds."
 
-  local swiftc
-  swiftc="$(xcrun --find swiftc 2>/dev/null || command -v swiftc || true)"
-  if [[ -z "$swiftc" ]]; then
+  # Compile through xcrun: it supplies the macOS SDK. Running the compiler
+  # by its full path inside Xcode skips that, and the build then fails with
+  # "unable to load standard library".
+  if ! xcrun --find swiftc >/dev/null 2>&1; then
     die "the Swift compiler wasn't found. Run: xcode-select --install
        then run this script again."
   fi
@@ -197,7 +198,7 @@ cmd_install() {
   # Swift 5 language mode avoids Swift 6's strictest concurrency checks.
   # Newer compilers still enforce some of them, which is why the watcher's
   # initializer is marked nonisolated.
-  "$swiftc" -O -swift-version 5 "$SRC" -o "$BIN" \
+  xcrun swiftc -O -swift-version 5 "$SRC" -o "$BIN" \
     || die "build failed (see compiler output above)."
 
   echo "Installing launch agent..."
